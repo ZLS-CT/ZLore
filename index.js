@@ -629,17 +629,20 @@ function registerLoreAction(itemStack, moduleName, action, lineIndex, newContent
             const skyblockUUID = getSkyblockItemUUID(itemStack)
             if (skyblockUUID == null) return
 
-            const actions = registeredLoreChanges[moduleName]?.[skyblockUUID] || {}
-            if (actions.hasOwnProperty(key)) {
-                updatedLore = true
-                return
+            let actions = {}
+            if (registeredLoreChanges.hasOwnProperty(skyblockUUID)) {
+                actions = registeredLoreChanges[skyblockUUID][moduleName] || {}
+                if (actions.hasOwnProperty(key)) {
+                    updatedLore = true
+                    return
+                }
             }
 
-            actions[key] = { action, lineIndex, newContent, contentToReplace, priority }
-            if (registeredLoreChanges[moduleName] == null) {
-                registeredLoreChanges[moduleName] = {}
+            actions[key] = { moduleName, action, lineIndex, newContent, contentToReplace, priority }
+            if (!registeredLoreChanges[skyblockUUID]) {
+                registeredLoreChanges[skyblockUUID] = {}
             }
-            registeredLoreChanges[moduleName][skyblockUUID] = actions
+            registeredLoreChanges[skyblockUUID][moduleName] = actions
         }())
 
         if (updatedLore) return
@@ -713,60 +716,39 @@ const GetItemStackFromHoverEvent = (event) => {
 
 function init() {
     function applyLoreActions(itemStack, tooltipList) {
-        let allActions = []
+        let actions = null
         if (onHypixel) {
             ;(function() {
                 const skyblockUUID = getSkyblockItemUUID(itemStack)
                 if (skyblockUUID == null) return
 
-                const nbtActions = loadLoreActions(itemStack)
-                const hasNBTActions = Object.keys(nbtActions).length > 0
-
-                Object.keys(registeredLoreChanges).forEach(moduleName => {
-                    if (!registeredLoreChanges[moduleName]) {
-                        registeredLoreChanges[moduleName] = {}
-                    }
-
-                    if (registeredLoreChanges[moduleName].hasOwnProperty(skyblockUUID)) {
-                        const actions = registeredLoreChanges[moduleName][skyblockUUID]
-                        Object.values(actions).forEach(actionData => {
-                            allActions.push(actionData)
-                        })
-                    }
-
-                    if (!hasNBTActions) return
-                    const moduleActions = {}
-                    Object.entries(nbtActions).forEach(([key, actionData]) => {
-                        const keyModuleName = key.split(':')[0]
-                        if (keyModuleName == moduleName) {
-                            moduleActions[key] = actionData
-                        }
+                if (registeredLoreChanges.hasOwnProperty(skyblockUUID)) {
+                    actions = {}
+                    Object.values(registeredLoreChanges[skyblockUUID]).forEach(moduleActions => {
+                        Object.assign(actions, moduleActions)
                     })
-
-                    if (Object.keys(moduleActions).length > 0) {
-                        registeredLoreChanges[moduleName][skyblockUUID] = moduleActions
-                        Object.values(moduleActions).forEach(actionData => {
-                            allActions.push(actionData)
-                        })
-                    }
-                })
-
-                if (hasNBTActions && allActions.length == 0) {
-                    allActions = Object.values(nbtActions)
+                    return
                 }
+                actions = loadLoreActions(itemStack)
+                if (Object.keys(actions).length == 0) return
+
+                registeredLoreChanges[skyblockUUID] = actions
             }())
         }
 
-        if (allActions.length == 0) {
-            const nbtActions = loadLoreActions(itemStack)
-            allActions = Object.values(nbtActions)
+        if (actions == null) {
+            actions = loadLoreActions(itemStack)
         }
-        if (allActions.length == 0) return
+        if (Object.keys(actions).length == 0) return
 
         const actionPriority = { remove: 0, replaceLine: 1, insert: 2 }
-        allActions.sort((a, b) => {
+        const actionArray = Array.from(Object.values(actions)).sort((a, b) => {
             if (a.priority != b.priority) {
                 return a.priority - b.priority
+            }
+
+            if (a.moduleName != b.moduleName) {
+                return a.moduleName.localeCompare(b.moduleName)
             }
 
             if (a.lineIndex == -1) return 1
@@ -778,8 +760,7 @@ function init() {
 
             return (actionPriority[a.action] || 99) - (actionPriority[b.action] || 99)
         })
-
-        allActions.forEach(actionData => {
+        actionArray.forEach(actionData => {
             applyLoreChanges(tooltipList, actionData, true)
         })
     }
@@ -953,13 +934,22 @@ export default Lore = {
         registeredLoreChanges = {}
     },
     clearModuleLoreChanges: function(moduleName) {
-        if (!registeredLoreChanges[moduleName]) return
-        registeredLoreChanges[moduleName] = {}
+        Object.keys(registeredLoreChanges).forEach(skyblockUUID => {
+            if (registeredLoreChanges[skyblockUUID][moduleName]) {
+                delete registeredLoreChanges[skyblockUUID][moduleName]
+            }
+        })
     },
-    clearItemLoreChanges: function(moduleName, item) {
-        if (!registeredLoreChanges[moduleName]) return
+    clearAllItemLoreChanges: function(item) {
         const itemStack = getItemStack(item)
         const skyblockUUID = getSkyblockItemUUID(itemStack)
-        registeredLoreChanges[moduleName][skyblockUUID] = {}
+        registeredLoreChanges[skyblockUUID] = {}
+    },
+    clearModuleItemLoreChanges: function(moduleName, item) {
+        const itemStack = getItemStack(item)
+        const skyblockUUID = getSkyblockItemUUID(itemStack)
+        if (registeredLoreChanges[skyblockUUID]) {
+            delete registeredLoreChanges[skyblockUUID][moduleName]
+        }
     }
 }
