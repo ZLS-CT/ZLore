@@ -1,14 +1,14 @@
-import { isLegacy } from "ZCore"
+import { GetJavaClass, isLegacy } from "../ZCore"
 import { splitText } from "../ZRenderLib/index"
 import * as Mixins from './mixins'
 import ListFixV2 from "./listfix"
 
-const DataComponentTypes = Java.type("net.minecraft.component.DataComponentTypes")
-const LoreComponent = Java.type("net.minecraft.component.type.LoreComponent")
-const NBTComponent = Java.type("net.minecraft.component.type.NbtComponent")
-const NBTCompound = Java.type("net.minecraft.nbt.NbtCompound")
-const NBTTagString = Java.type("net.minecraft.nbt.NBTTagString")
-const System = Java.type("java.lang.System")
+const DataComponentTypes = GetJavaClass("net.minecraft.component.DataComponentTypes")
+const LoreComponent = GetJavaClass("net.minecraft.component.type.LoreComponent")
+const NBTComponent = GetJavaClass("net.minecraft.component.type.NbtComponent")
+const NBTCompound = GetJavaClass("net.minecraft.nbt.NbtCompound")
+const NBTTagString = GetJavaClass("net.minecraft.nbt.NBTTagString")
+const System = GetJavaClass("java.lang.System")
 
 const tooltipField = "toolTip"
 const HYPIXEL_REGEX = /^(?:[\w-]+\.)?(hypixel\.net)$/
@@ -36,7 +36,7 @@ register("gameLoad", () => {
 // Catches normal server joining
 register("serverDisconnect", () => { updateOnHypixel() })
 register("serverConnect", () => {
-    let maxAttempts = 10
+    const maxAttempts = 10
     let attempts = 0
     new Thread(() => {
         while (attempts < maxAttempts) {
@@ -116,13 +116,13 @@ function getCustomDataNBT(itemStack) {
     return customDataComponent ? customDataComponent.nbt : NBTComponent.DEFAULT.nbt.copy()
 }
 
-function applyNonEventLoreChanges(item, actionData, safeMode) {
+function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
     const itemStack = getItemStack(item)
     const { action, lineIndex, newContent, contentToReplace, priority } = actionData
     if (itemStack == null || action == null || newContent == null || lineIndex == null || priority == null) return
 
     if (safeMode) {
-        registerLoreAction(itemStack, action, lineIndex, newContent, contentToReplace, priority)
+        registerLoreAction(itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority)
         return true
     }
 
@@ -397,7 +397,7 @@ function replaceByContent(tooltipList, contentToReplace, newContentList, formatt
                 let indexesToReplace = []
                 for (let i = 0; i < size; i++) {
                     let line = ListFixV2.getAt(tooltipList, tooltipField, i)
-                    if (processFormattedText(line, formatted) === contentToReplace) {
+                    if (processFormattedText(line, formatted) == contentToReplace) {
                         indexesToReplace.push(i)
                     }
                 }
@@ -409,7 +409,7 @@ function replaceByContent(tooltipList, contentToReplace, newContentList, formatt
 
             let size = tooltipList.func_74745_c()
             for (let i = 0; i < size; i++) {
-                if (processFormattedText(tooltipList.func_150307_f(i), formatted) === contentToReplace) {
+                if (processFormattedText(tooltipList.func_150307_f(i), formatted) == contentToReplace) {
                     tooltipList.func_150304_a(i, new NBTTagString(newContent))
                 }
             }
@@ -417,7 +417,7 @@ function replaceByContent(tooltipList, contentToReplace, newContentList, formatt
         }
 
         tooltipList.replaceAll(line => {
-            return processFormattedText(line, formatted) === contentToReplace ? newContent : line
+            return processFormattedText(line, formatted) == contentToReplace ? newContent : line
         })
     })
 }
@@ -587,6 +587,7 @@ function loadLoreActions(itemStack) {
             if (loreActionData == null) return
 
             let actionData = {
+                moduleName: loreActionData.func_74779_i("moduleName"),
                 action: loreActionData.func_74779_i("action"),
                 lineIndex: loreActionData.func_74762_e("lineIndex"),
                 newContent: loreActionData.func_74779_i("newContent"),
@@ -608,6 +609,7 @@ function loadLoreActions(itemStack) {
         if (!nbtElement) continue
 
         actions[key] = {
+            moduleName: nbtElement.getString("moduleName").orElse(null),
             action: nbtElement.getString("action").orElse(null),
             lineIndex: nbtElement.getInt("lineIndex").orElse(null),
             newContent: nbtElement.getString("newContent").orElse(null),
@@ -618,8 +620,8 @@ function loadLoreActions(itemStack) {
     return actions
 }
 
-function registerLoreAction(itemStack, action, lineIndex, newContent, contentToReplace, priority) {
-    const key = `${action}:${lineIndex}:${newContent}:${contentToReplace}:${priority}`
+function registerLoreAction(itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority) {
+    const key = `${moduleName}:${action}:${lineIndex}:${newContent}:${contentToReplace}:${priority}`
 
     if (onHypixel) {
         let updatedLore = false
@@ -627,14 +629,17 @@ function registerLoreAction(itemStack, action, lineIndex, newContent, contentToR
             const skyblockUUID = getSkyblockItemUUID(itemStack)
             if (skyblockUUID == null) return
 
-            const actions = registeredLoreChanges[skyblockUUID] || {}
+            const actions = registeredLoreChanges[moduleName]?.[skyblockUUID] || {}
             if (actions.hasOwnProperty(key)) {
                 updatedLore = true
                 return
             }
 
             actions[key] = { action, lineIndex, newContent, contentToReplace, priority }
-            registeredLoreChanges[skyblockUUID] = actions
+            if (registeredLoreChanges[moduleName] == null) {
+                registeredLoreChanges[moduleName] = {}
+            }
+            registeredLoreChanges[moduleName][skyblockUUID] = actions
         }())
 
         if (updatedLore) return
@@ -649,6 +654,7 @@ function registerLoreAction(itemStack, action, lineIndex, newContent, contentToR
         if (rootTag.func_150297_b(key, 9)) return
 
         nbtElement = new NBTTagCompound(new net.minecraft.nbt.NBTTagCompound())
+        nbtElement.setString("moduleName", moduleName)
         nbtElement.setString("action", action)
         nbtElement.setInteger("lineIndex", lineIndex)
         nbtElement.setString("newContent", newContent)
@@ -664,6 +670,7 @@ function registerLoreAction(itemStack, action, lineIndex, newContent, contentToR
     if (rootTag == null) rootTag = new NBTCompound()
 
     nbtElement = new NBTCompound()
+    nbtElement.putString("moduleName", moduleName)
     nbtElement.putString("action", action)
     nbtElement.putInt("lineIndex", lineIndex)
     nbtElement.putString("newContent", newContent)
@@ -706,44 +713,73 @@ const GetItemStackFromHoverEvent = (event) => {
 
 function init() {
     function applyLoreActions(itemStack, tooltipList) {
-        let actions = null
+        let allActions = []
         if (onHypixel) {
             ;(function() {
                 const skyblockUUID = getSkyblockItemUUID(itemStack)
                 if (skyblockUUID == null) return
 
-                if (registeredLoreChanges.hasOwnProperty(skyblockUUID)) {
-                    actions = registeredLoreChanges[skyblockUUID]
-                    return
-                }
-                actions = loadLoreActions(itemStack)
-                if (Object.keys(actions).length == 0) return
+                const nbtActions = loadLoreActions(itemStack)
+                const hasNBTActions = Object.keys(nbtActions).length > 0
 
-                registeredLoreChanges[skyblockUUID] = actions
+                Object.keys(registeredLoreChanges).forEach(moduleName => {
+                    if (!registeredLoreChanges[moduleName]) {
+                        registeredLoreChanges[moduleName] = {}
+                    }
+
+                    if (registeredLoreChanges[moduleName].hasOwnProperty(skyblockUUID)) {
+                        const actions = registeredLoreChanges[moduleName][skyblockUUID]
+                        Object.values(actions).forEach(actionData => {
+                            allActions.push(actionData)
+                        })
+                    }
+
+                    if (!hasNBTActions) return
+                    const moduleActions = {}
+                    Object.entries(nbtActions).forEach(([key, actionData]) => {
+                        const keyModuleName = key.split(':')[0]
+                        if (keyModuleName == moduleName) {
+                            moduleActions[key] = actionData
+                        }
+                    })
+
+                    if (Object.keys(moduleActions).length > 0) {
+                        registeredLoreChanges[moduleName][skyblockUUID] = moduleActions
+                        Object.values(moduleActions).forEach(actionData => {
+                            allActions.push(actionData)
+                        })
+                    }
+                })
+
+                if (hasNBTActions && allActions.length == 0) {
+                    allActions = Object.values(nbtActions)
+                }
             }())
         }
 
-        if (actions == null) {
-            actions = loadLoreActions(itemStack)
+        if (allActions.length == 0) {
+            const nbtActions = loadLoreActions(itemStack)
+            allActions = Object.values(nbtActions)
         }
-        if (Object.keys(actions).length == 0) return
+        if (allActions.length == 0) return
 
         const actionPriority = { remove: 0, replaceLine: 1, insert: 2 }
-        const actionArray = Array.from(Object.values(actions)).sort((a, b) => {
+        allActions.sort((a, b) => {
             if (a.priority != b.priority) {
                 return a.priority - b.priority
             }
 
-            if (a.lineIndex === -1) return 1
-            if (b.lineIndex === -1) return -1
+            if (a.lineIndex == -1) return 1
+            if (b.lineIndex == -1) return -1
 
-            if (b.lineIndex !== a.lineIndex) {
+            if (b.lineIndex != a.lineIndex) {
                 return b.lineIndex - a.lineIndex
             }
 
             return (actionPriority[a.action] || 99) - (actionPriority[b.action] || 99)
         })
-        actionArray.forEach(actionData => {
+
+        allActions.forEach(actionData => {
             applyLoreChanges(tooltipList, actionData, true)
         })
     }
@@ -775,8 +811,8 @@ function init() {
 }
 
 export default Lore = {
-    insert: function(item, lineIndex, newContent, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    insert: function(item, moduleName, lineIndex, newContent, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "insert",
             lineIndex: lineIndex,
             newContent: newContent,
@@ -786,11 +822,11 @@ export default Lore = {
     },
 
     // This doesn't work properly in legacy versions, it appends after unmodified lore
-    append: function(item, newContent, safeMode = true, priority = 0) {
-        return this.appendAfterModified(item, newContent, safeMode, priority)
+    append: function(item, moduleName, newContent, safeMode = true, priority = 0) {
+        return this.appendAfterModified(item, moduleName, newContent, safeMode, priority)
     },
-    appendAfterModified: function(item, newContent, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    appendAfterModified: function(item, moduleName, newContent, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "append",
             lineIndex: -1,
             newContent: newContent,
@@ -798,27 +834,27 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    appendAfterUnmodified: function(item, newContent, safeMode = true, priority = 0) {
+    appendAfterUnmodified: function(item, moduleName, newContent, safeMode = true, priority = 0) {
         // Append in legacy versions already appends after unmodified lore
         if (isLegacy) {
-            return this.append(item, newContent, safeMode, priority)
+            return this.append(item, moduleName, newContent, safeMode, priority)
         }
 
         try {
             const currentLore = item.getProcessedLore()
             const insertIndex = currentLore.length + 1 - (safeMode ? 0 : 1)
-            return this.insert(item, insertIndex, newContent, safeMode, priority)
+            return this.insert(item, moduleName, insertIndex, newContent, safeMode, priority)
         } catch (e) {
             if (isDebug) ChatLib.chat(`[AppendAfterUnmodified] Error: ${JSON.stringify(e)}`)
             return false
         }
     },
 
-    remove: function(item, lineIndex, safeMode = true, priority = 0) {
-        return this.removeLine(item, lineIndex, safeMode, priority)
+    remove: function(item, moduleName, lineIndex, safeMode = true, priority = 0) {
+        return this.removeLine(item, moduleName, lineIndex, safeMode, priority)
     },
-    removeLine: function(item, lineIndex, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    removeLine: function(item, moduleName, lineIndex, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "remove",
             lineIndex: lineIndex,
             newContent: "",
@@ -826,8 +862,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    removeLineContent: function(item, contentToRemove, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    removeLineContent: function(item, moduleName, contentToRemove, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "removeContent" + (formatted ? "" : "U"),
             lineIndex: -1,
             newContent: "",
@@ -835,8 +871,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    removeLineContentRegex: function(item, regexString, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    removeLineContentRegex: function(item, moduleName, regexString, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "removeContentRegex" + (formatted ? "" : "U"),
             lineIndex: -1,
             newContent: "",
@@ -844,8 +880,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    removeAndInsertRegex: function(item, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    removeAndInsertRegex: function(item, moduleName, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "removeAndInsertRegex" + (formatted ? "" : "U"),
             lineIndex: lineIndex,
             newContent: newContent,
@@ -854,11 +890,11 @@ export default Lore = {
         }, safeMode)
     },
 
-    replace: function(item, lineIndex, newContent, safeMode = true, priority = 0) {
-        return this.replaceLine(item, lineIndex, newContent, safeMode, priority)
+    replace: function(item, moduleName, lineIndex, newContent, safeMode = true, priority = 0) {
+        return this.replaceLine(item, moduleName, lineIndex, newContent, safeMode, priority)
     },
-    replaceLine: function(item, lineIndex, newContent, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    replaceLine: function(item, moduleName, lineIndex, newContent, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "replaceLine",
             lineIndex: lineIndex,
             newContent: newContent,
@@ -866,8 +902,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    replaceLineContent: function(item, contentToReplace, newContent, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    replaceLineContent: function(item, moduleName, contentToReplace, newContent, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "replaceContent" + (formatted ? "" : "U"),
             lineIndex: -1,
             newContent: newContent,
@@ -875,8 +911,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    replaceLineContentRegex: function(item, regexString, newContent, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    replaceLineContentRegex: function(item, moduleName, regexString, newContent, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "replaceContentRegex" + (formatted ? "" : "U"),
             lineIndex: -1,
             newContent: newContent,
@@ -884,8 +920,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    replaceWord: function(item, contentToReplace, newContent, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    replaceWord: function(item, moduleName, contentToReplace, newContent, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "replaceWord",
             lineIndex: -1,
             newContent: newContent,
@@ -893,8 +929,8 @@ export default Lore = {
             priority: priority,
         }, safeMode)
     },
-    replaceOrInsertRegex: function(item, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
-        return applyNonEventLoreChanges(item, {
+    replaceOrInsertRegex: function(item, moduleName, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
             action: "replaceOrInsertRegex" + (formatted ? "" : "U"),
             lineIndex: lineIndex,
             newContent: newContent,
@@ -909,8 +945,21 @@ export default Lore = {
         return getItemStackLore(itemStack, formatted)
     },
     getProcessedLore: function(item, formatted = true) {
-        return getLore(item, formatted).map(line => {
+        return this.getLore(item, formatted).map(line => {
             return processFormattedText(line, formatted)
         })
     },
+    clearAllLoreChanges: function() {
+        registeredLoreChanges = {}
+    },
+    clearModuleLoreChanges: function(moduleName) {
+        if (!registeredLoreChanges[moduleName]) return
+        registeredLoreChanges[moduleName] = {}
+    },
+    clearItemLoreChanges: function(moduleName, item) {
+        if (!registeredLoreChanges[moduleName]) return
+        const itemStack = getItemStack(item)
+        const skyblockUUID = getSkyblockItemUUID(itemStack)
+        registeredLoreChanges[moduleName][skyblockUUID] = {}
+    }
 }
