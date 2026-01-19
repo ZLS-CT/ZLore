@@ -1,4 +1,4 @@
-import { GetJavaClass, isLegacy } from "../ZCore"
+import { GetJavaClass, isLegacy, getItemStackLore, getCustomDataNBT, getItemStack } from "../ZCore"
 import { splitText } from "../ZRenderLib/index"
 import * as Mixins from './mixins'
 import ListFixV2 from "./listfix"
@@ -92,28 +92,6 @@ function GetTextComponentList(content) {
         })
     }
     return textList
-}
-
-function getItemStackLore(itemStack, formatted = true) {
-    if (isLegacy) {
-        return getCustomDataNBT(itemStack).func_74775_l("display").func_150295_c("Lore", 8)
-    }
-    const loreComponent = itemStack.get(DataComponentTypes.LORE)
-    return new ArrayList(loreComponent?.lines() || []).map(line => {
-        if (formatted) {
-            return new TextComponent(line).formattedText
-        }
-        return new TextComponent(line).unformattedText.toLowerCase()
-    })
-}
-
-function getCustomDataNBT(itemStack) {
-    if (isLegacy) {
-        return itemStack.func_77978_p()
-    }
-
-    const customDataComponent = itemStack.get(DataComponentTypes.CUSTOM_DATA)
-    return customDataComponent ? customDataComponent.nbt : NBTComponent.DEFAULT.nbt.copy()
 }
 
 function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
