@@ -1,4 +1,4 @@
-import Lore from "ZLore"
+import Lore from "../ZLore/index"
 
 register('itemTooltip', (loreList, item, event) => {
     /*
@@ -21,7 +21,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The content to append to the lore
         @param {Boolean} safeMode - If true, will only append one time. If false, will append a new line over and over when you hover over the item.
     */
-    // Lore.append(item, "Hello World", true)
+    // Lore.append(item, "ZLoreExamples", "Hello World", true)
 
 
     /*
@@ -47,7 +47,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The content to append to the lore
         @param {Boolean} safeMode - If true, will only append one time. If false, will append a new line over and over when you hover over the item.
     */
-    // Lore.append(item, "Hello World", false)
+    // Lore.append(item, "ZLoreExamples", "Hello World", false)
 
 
     /*
@@ -70,7 +70,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The content to append to the lore
         @param {Boolean} safeMode - If true, will only append one time. If false, will append a new line over and over when you hover over the item.
     */
-    // Lore.appendAfterUnmodified(item, "Hello World", true)
+    // Lore.appendAfterUnmodified(item, "ZLoreExamples", "Hello World", true)
 
 
     /*
@@ -95,7 +95,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The content to append to the lore
         @param {Boolean} safeMode - If true, will only append one time. If false, will insert a new line over and over when you hover over the item.
     */
-    // Lore.insert(item, 0, "Hello World", true)
+    // Lore.insert(item, "ZLoreExamples", 0, "Hello World", true)
 
 
     /*
@@ -116,7 +116,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Number} index - The index to remove at
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.remove(item, 2, true)
+    // Lore.remove(item, "ZLoreExamples", 2, true)
 
 
     /*
@@ -140,7 +140,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Boolean} formatted - If false, will unformat the lore and content before checking for replacements
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.removeLineContent(item, "Legendary Sword", false, true)
+    // Lore.removeLineContent(item, "ZLoreExamples", "Legendary Sword", false, true)
 
 
     /*
@@ -164,7 +164,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Boolean} formatted - If false, will unformat the lore and content before checking for replacements
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.removeLineContentRegex(item, /common/i, false, true)
+    // Lore.removeLineContentRegex(item, "ZLoreExamples", /common/i, false, true)
 
 
     /*
@@ -188,7 +188,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The new content to replace the lore with
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.replace(item, 2, "Hello World", true)
+    // Lore.replace(item, "ZLoreExamples", 2, "Hello World", true)
 
 
     /*
@@ -214,7 +214,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Boolean} formatted - If false, will unformat the lore and content before checking for replacements
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.replaceLineContent(item, "Legendary Sword", "§d§lMythic Shovel", false, true)
+    // Lore.replaceLineContent(item, "ZLoreExamples", "Legendary Sword", "§d§lMythic Shovel", false, true)
 
 
     /*
@@ -241,7 +241,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Boolean} formatted - If false, will unformat the lore and content before checking for replacements
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.replaceLineContentRegex(item, /common/i, "Rare", false, true)
+    // Lore.replaceLineContentRegex(item, "ZLoreExamples", /common/i, "Rare", false, true)
 
 
     /*
@@ -266,7 +266,7 @@ register('itemTooltip', (loreList, item, event) => {
         @param {String} newContent - The new content to replace the lore with
         @param {Boolean} safeMode - If true, will only replace one time. If false, will replace the lore over and over when you hover over the item.
     */
-    // Lore.replaceWord(item, "common", "Rare", true)
+    // Lore.replaceWord(item, "ZLoreExamples", "common", "Rare", true)
 
     /*
         Uncomment the line below to print the item lore to the chat when you hover over an item.
