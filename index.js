@@ -100,7 +100,7 @@ function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
     if (itemStack == null || action == null || newContent == null || lineIndex == null || priority == null) return
 
     if (safeMode) {
-        registerLoreAction(itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority)
+        registerLoreAction(item, itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority)
         return true
     }
 
@@ -598,7 +598,7 @@ function loadLoreActions(itemStack) {
     return actions
 }
 
-function registerLoreAction(itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority) {
+function registerLoreAction(item, itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority) {
     const key = `${moduleName}:${action}:${lineIndex}:${newContent}:${contentToReplace}:${priority}`
 
     if (onHypixel) {
@@ -626,7 +626,7 @@ function registerLoreAction(itemStack, moduleName, action, lineIndex, newContent
         if (updatedLore) return
     }
 
-    let itemNBT = getCustomDataNBT(itemStack)
+    let itemNBT = getCustomDataNBT(item)
     let rootTag = null
     let nbtElement = null
     if (isLegacy) {
