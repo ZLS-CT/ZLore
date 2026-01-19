@@ -78,7 +78,7 @@ function parseRegexString(input) {
 
 function GetTextComponentList(content) {
     if (isLegacy) {
-        return [content.split("\n")]
+        return content.split("\n")
     }
 
     let textList = []
@@ -112,8 +112,8 @@ function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
 function applyLoreChanges(tooltipList, actionData, fromEvent) {
     if (tooltipList == null) return
 
-    let { action, lineIndex, newContent, contentToReplace, priority } = actionData
-    if (action == null || newContent == null || lineIndex == null || priority == null) return
+    let { moduleName, action, lineIndex, newContent, contentToReplace, priority } = actionData
+    if (moduleName == null || action == null || newContent == null || lineIndex == null || priority == null) return
 
     let newContentList = GetTextComponentList(newContent)
     switch (action) {
