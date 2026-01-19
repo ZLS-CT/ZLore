@@ -50,7 +50,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "add")
         if (methodCached) return ListFixInstance[methodCached](event, name, str)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.addM(event, name, str)
 
         ListFixInstance.addF(event, name, str)
@@ -68,7 +68,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "set")
         if (methodCached) return ListFixInstance[methodCached](event, name, idx, str)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.setM(event, name, idx, str)
 
         ListFixInstance.setF(event, name, idx, str)
@@ -84,7 +84,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "clear")
         if (methodCached) return ListFixInstance[methodCached](event, name)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.clearM(event, name)
 
         ListFixInstance.clearF(event, name)
@@ -101,7 +101,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "remove")
         if (methodCached) return ListFixInstance[methodCached](event, name, idx)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.removeM(event, name, idx)
 
         ListFixInstance.removeF(event, name, idx)
@@ -118,7 +118,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "get")
         if (methodCached) return ListFixInstance[methodCached](event, name, idx)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.getM(event, name, idx)
 
         return ListFixInstance.getF(event, name, idx)
@@ -136,7 +136,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "insert")
         if (methodCached) return ListFixInstance[methodCached](event, name, idx, str)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.insertM(event, name, idx, str)
 
         ListFixInstance.insertF(event, name, idx, str)
@@ -152,7 +152,7 @@ export default class ListFixV2 {
         const methodCached = this._checkCache(name, "size")
         if (methodCached) return ListFixInstance[methodCached](event, name)
 
-        const res = ListFix._reflect(event, name)
+        const res = this._reflect(event, name)
         if (res === 1) return ListFixInstance.sizeM(event, name)
 
         return ListFixInstance.sizeF(event, name)
