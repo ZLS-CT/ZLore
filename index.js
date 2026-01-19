@@ -630,19 +630,21 @@ function registerLoreAction(item, itemStack, moduleName, action, lineIndex, newC
     let rootTag = null
     let nbtElement = null
     if (isLegacy) {
-        rootTag = itemNBT.func_74775_l("loreActions")
-        if (rootTag == null) rootTag = new NBTTagCompound(new net.minecraft.nbt.NBTTagCompound()).rawNBT
-        if (rootTag.func_150297_b(key, 9)) return
+        let rootTag = itemNBT.func_74775_l("loreActions")
+        if (rootTag == null || rootTag.func_82582_d()) {
+            rootTag = new net.minecraft.nbt.NBTTagCompound()
+        }
+        if (rootTag.func_74764_b(key)) return
 
-        nbtElement = new NBTTagCompound(new net.minecraft.nbt.NBTTagCompound())
-        nbtElement.setString("moduleName", moduleName)
-        nbtElement.setString("action", action)
-        nbtElement.setInteger("lineIndex", lineIndex)
-        nbtElement.setString("newContent", newContent)
-        nbtElement.setString("contentToReplace", contentToReplace)
-        nbtElement.setInteger("priority", priority)
+        const nbtElement = new net.minecraft.nbt.NBTTagCompound()
+        nbtElement.func_74778_a("moduleName", moduleName)
+        nbtElement.func_74778_a("action", action)
+        nbtElement.func_74768_a("lineIndex", lineIndex)
+        nbtElement.func_74778_a("newContent", newContent)
+        nbtElement.func_74778_a("contentToReplace", contentToReplace)
+        nbtElement.func_74768_a("priority", priority)
 
-        rootTag.func_74782_a(key, nbtElement.rawNBT)
+        rootTag.func_74782_a(key, nbtElement)
         itemNBT.func_74782_a("loreActions", rootTag)
         return
     }
