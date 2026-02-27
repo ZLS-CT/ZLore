@@ -759,16 +759,21 @@ function init() {
         return
     }
 
-    Mixins.itemStack_modifyTooltip.attach((itemStack, callbackInfo, tooltipList) => {
-        // Prevents mixin from running when modules are unloaded
-        if (!isLoaded) return
+    try {
+        Mixins.itemStack_modifyTooltip.attach((itemStack, callbackInfo, tooltipList) => {
+            // Prevents mixin from running when modules are unloaded
+            if (!isLoaded) return
 
-        try {
-            applyLoreActions(itemStack, tooltipList)
-        } catch (e) {
-            if (isDebug) ChatLib.chat(`[GetTooltipMixin] Error: ${JSON.stringify(e)}`)
-        }
-    })
+            try {
+                applyLoreActions(itemStack, tooltipList)
+            } catch (e) {
+                if (isDebug) ChatLib.chat(`[GetTooltipMixin] Error: ${JSON.stringify(e)}`)
+            }
+        })
+    } catch (e) {
+        console.error("Failed to apply mixin, lore modifications will not work: ", e)
+        if (isDebug) ChatLib.chat(`[GetTooltipMixin] Error: ${JSON.stringify(e)}`)
+    }
 }
 
 export default Lore = {
