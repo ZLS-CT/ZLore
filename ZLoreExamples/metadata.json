@@ -1,0 +1,10 @@
+{
+    "name": "ZLoreExamples",
+    "description": "Examples for using ZLore.",
+    "author": "Zephy (Nvidia2080Ti)",
+    "requires": [
+        "ZLore"
+    ],
+    "version": "1.0.0",
+    "entry": "examples.js"
+}

@@ -275,4 +275,39 @@ register('itemTooltip', (loreList, item, event) => {
         @param {Boolean} formatted - If false, will remove formatting from the lore before printing it
     */
     // ChatLib.chat(Lore.getLore(item, true))
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+        Uncomment the line below to append a line of lore on every item you hover over that appears after any other mods change the lore.
+
+        Before:
+        Item Name
+        Normal Lore Line 1
+        Normal Lore Line 2
+        Lore Line added by another mod
+
+        After:
+        Item Name
+        Normal Lore Line 1
+        Normal Lore Line 2
+        Lore Line added by another mod
+        Hello World
+
+        @param {ItemStack} item - The item stack you are hovering over
+        @param {String} newContent - The content to append to the lore
+        @param {Boolean} safeMode - If true, will only append one time. If false, will append a new line over and over when you hover over the item.
+    */
+    Lore.append(item, "ZLoreExamples", "#BB0551", true)
+    Lore.append(item, "ZLoreExamples", "#BB1551", true)
 })
