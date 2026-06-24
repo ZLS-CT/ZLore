@@ -1,11 +1,11 @@
 {
     "name": "ZLore",
-    "description": "Utility module to edit item lore. Supports 1.8.9 and 1.21.x.",
+    "description": "Utility module to edit item lore. Supports 1.8.9, 1.21.x, and 26.x.",
     "author": "Zephy (Nvidia2080Ti)",
     "requires": [
         "ZCore",
         "ZRenderLib"
     ],
-    "version": "1.1.0",
+    "version": "1.2.0",
     "mixinEntry": "mixins.js"
 }

@@ -170,8 +170,8 @@ export default class ListFixV2 {
          * @returns
          */
         add(event, reflected, str) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.addF(event, reflected, str)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.addF(event, reflected, str)
+            if (!(reflected instanceof Method)) return
 
             ListFixInstance.addM(event, reflected, str)
         },
@@ -185,8 +185,8 @@ export default class ListFixV2 {
          * @returns
          */
         set(event, reflected, idx, str) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.setF(event, reflected, idx, str)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.setF(event, reflected, idx, str)
+            if (!(reflected instanceof Method)) return
 
             ListFixInstance.setM(event, reflected, idx, str)
         },
@@ -198,8 +198,8 @@ export default class ListFixV2 {
          * @returns
          */
         clear(event, reflected) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.clearF(event, reflected)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.clearF(event, reflected)
+            if (!(reflected instanceof Method)) return
 
             ListFixInstance.clearM(event, reflected)
         },
@@ -212,8 +212,8 @@ export default class ListFixV2 {
          * @returns
          */
         removeAt(event, reflected, idx) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.removeF(event, reflected, idx)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.removeF(event, reflected, idx)
+            if (!(reflected instanceof Method)) return
 
             ListFixInstance.removeM(event, reflected, idx)
         },
@@ -226,8 +226,8 @@ export default class ListFixV2 {
          * @returns
          */
         getAt(event, reflected, idx) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.getF(event, reflected, idx)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.getF(event, reflected, idx)
+            if (!(reflected instanceof Method)) return
 
             return ListFixInstance.getM(event, reflected, idx)
         },
@@ -241,8 +241,8 @@ export default class ListFixV2 {
          * @returns
          */
         insertAt(event, reflected, idx, str) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.insertF(event, reflected, idx, str)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.insertF(event, reflected, idx, str)
+            if (!(reflected instanceof Method)) return
 
             ListFixInstance.insertM(event, reflected, idx, str)
         },
@@ -254,8 +254,8 @@ export default class ListFixV2 {
          * @returns
          */
         size(event, reflected) {
-            if (reflected instanceof java.lang.reflect.Field) return ListFixInstance.sizeF(event, reflected)
-            if (!(reflected instanceof java.lang.reflect.Method)) return
+            if (reflected instanceof Field) return ListFixInstance.sizeF(event, reflected)
+            if (!(reflected instanceof Method)) return
 
             return ListFixInstance.sizeM(event, reflected)
         }

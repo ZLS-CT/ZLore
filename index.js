@@ -3,12 +3,7 @@ import { splitText } from "../ZRenderLib/index"
 import * as Mixins from './mixins'
 import ListFixV2 from "./listfix"
 
-const DataComponentTypes = GetJavaClass("net.minecraft.component.DataComponentTypes")
-const LoreComponent = GetJavaClass("net.minecraft.component.type.LoreComponent")
-const NBTComponent = GetJavaClass("net.minecraft.component.type.NbtComponent")
-const NBTCompound = GetJavaClass("net.minecraft.nbt.NbtCompound")
 const NBTTagString = GetJavaClass("net.minecraft.nbt.NBTTagString")
-const System = GetJavaClass("java.lang.System")
 
 const tooltipField = "toolTip"
 const HYPIXEL_REGEX = /^(?:[\w-]+\.)?(hypixel\.net)$/
@@ -538,19 +533,6 @@ function getSkyblockItemUUID(itemStack) {
     return uuid
 }
 
-export const getItemStack = (item) => {
-    if (isLegacy) {
-        if (item instanceof com.chattriggers.ctjs.minecraft.wrappers.inventory.Item) {
-            return item.itemStack
-        }
-        return item
-    }
-    if (item instanceof com.chattriggers.ctjs.api.inventory.Item) {
-        return item.mcValue
-    }
-    return item
-}
-
 function loadLoreActions(itemStack) {
     const itemNBT = getCustomDataNBT(itemStack)
 
@@ -650,9 +632,9 @@ function registerLoreAction(item, itemStack, moduleName, action, lineIndex, newC
     }
 
     rootTag = itemNBT.getCompound("loreActions").orElse(null)
-    if (rootTag == null) rootTag = new NBTCompound()
+    if (rootTag == null) rootTag = new CompoundTag()
 
-    nbtElement = new NBTCompound()
+    nbtElement = new CompoundTag()
     nbtElement.putString("moduleName", moduleName)
     nbtElement.putString("action", action)
     nbtElement.putInt("lineIndex", lineIndex)
@@ -662,7 +644,7 @@ function registerLoreAction(item, itemStack, moduleName, action, lineIndex, newC
 
     rootTag.put(key, nbtElement)
     itemNBT.put("loreActions", rootTag)
-    itemStack.set(DataComponentTypes.CUSTOM_DATA, NBTComponent.of(itemNBT))
+    itemStack.set(DataComponents.CUSTOM_DATA, CustomData.of(itemNBT))
 }
 
 function withLoreList(itemStack, methodName, callback) {
@@ -670,7 +652,7 @@ function withLoreList(itemStack, methodName, callback) {
         const loreList = getItemStackLore(itemStack)
         callback(loreList)
         if (!isLegacy) {
-            itemStack.set(DataComponentTypes.LORE, new LoreComponent(loreList))
+            itemStack.set(DataComponents.LORE, new LoreComponent(loreList))
         }
         return true
     } catch (e) {
