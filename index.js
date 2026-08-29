@@ -1,7 +1,7 @@
 import { GetJavaClass, isLegacy, getItemStackLore, getCustomDataNBT, getItemStack } from "../ZCore"
 import { splitText } from "../ZRenderLib/index"
 import * as Mixins from './mixins'
-import ListFixV2 from "./listfix"
+import ListFix from "./listfix"
 
 const NBTTagString = GetJavaClass("net.minecraft.nbt.NBTTagString")
 
@@ -81,6 +81,10 @@ function GetTextComponentList(content) {
         splitText(content, 512).lines.forEach((line) => {
             textList.push(line)
         })
+    } else if (Array.isArray(content)) {
+        content.forEach((line) => {
+            textList.push(new TextComponent(line))
+        })
     } else {
         content.split("\n").forEach((line) => {
             textList.push(new TextComponent(line))
@@ -92,7 +96,14 @@ function GetTextComponentList(content) {
 function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
     const itemStack = getItemStack(item)
     const { action, lineIndex, newContent, contentToReplace, priority } = actionData
-    if (itemStack == null || action == null || newContent == null || lineIndex == null || priority == null) return
+    if (
+        itemStack == null ||
+        action == null ||
+        lineIndex == null ||
+        newContent == null ||
+        contentToReplace == null ||
+        priority == null
+    ) throw new Error("Invalid actionData: missing required fields")
 
     if (safeMode) {
         registerLoreAction(item, itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority)
@@ -100,15 +111,22 @@ function applyNonEventLoreChanges(item, moduleName, actionData, safeMode) {
     }
 
     return withLoreList(itemStack, action, (loreList) => {
-        applyLoreChanges(loreList, actionData, false)
+        applyLoreChanges(loreList, actionData, false, Lore.getLore(itemStack), new Set())
     })
 }
 
-function applyLoreChanges(tooltipList, actionData, fromEvent) {
+function applyLoreChanges(tooltipList, actionData, fromEvent, originalLore, addedLines) {
     if (tooltipList == null) return
 
     let { moduleName, action, lineIndex, newContent, contentToReplace, priority } = actionData
-    if (moduleName == null || action == null || newContent == null || lineIndex == null || priority == null) return
+    if (
+        moduleName == null ||
+        action == null ||
+        lineIndex == null ||
+        newContent == null ||
+        contentToReplace == null ||
+        priority == null
+    ) throw new Error("Invalid loreData: missing required fields")
 
     let newContentList = GetTextComponentList(newContent)
     switch (action) {
@@ -163,6 +181,9 @@ function applyLoreChanges(tooltipList, actionData, fromEvent) {
         case "replaceOrInsertRegexU":
             replaceOrInsertRegex(tooltipList, contentToReplace, lineIndex, newContentList, false, fromEvent)
             break
+        case "setLore":
+            setLore(tooltipList, newContentList, fromEvent, originalLore, addedLines)
+            break
     }
 }
 
@@ -181,7 +202,7 @@ function insertByLineIndex(tooltipList, lineIndex, newContentList, fromEvent) {
         let newIndex = lineIndex + indexOffset
         if (isLegacy) {
             if (fromEvent) {
-                ListFixV2.insert(tooltipList, tooltipField, newIndex, newContent)
+                ListFix.insert(tooltipList, tooltipField, newIndex, newContent)
                 return
             }
 
@@ -209,7 +230,7 @@ function appendContent(tooltipList, newContentList, fromEvent) {
     newContentList.forEach(newContent => {
         if (isLegacy) {
             if (fromEvent) {
-                ListFixV2.add(tooltipList, tooltipField, newContent)
+                ListFix.add(tooltipList, tooltipField, newContent)
                 return
             }
 
@@ -224,7 +245,7 @@ function appendContent(tooltipList, newContentList, fromEvent) {
 function removeByLineIndex(tooltipList, lineIndex, fromEvent) {
     if (isLegacy) {
         if (fromEvent) {
-            ListFixV2.removeAt(tooltipList, tooltipField, lineIndex)
+            ListFix.removeAt(tooltipList, tooltipField, lineIndex)
             return
         }
 
@@ -242,16 +263,16 @@ function removeByContent(tooltipList, contentToRemove, formatted, fromEvent) {
 
     if (isLegacy) {
         if (fromEvent) {
-            let size = ListFixV2.size(tooltipList, tooltipField)
+            let size = ListFix.size(tooltipList, tooltipField)
             let indexesToRemove = []
             for (let i = 0; i < size; i++) {
-                let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                let line = ListFix.getAt(tooltipList, tooltipField, i)
                 if (processFormattedText(line, formatted) == contentToRemove) {
                     indexesToRemove.push(i)
                 }
             }
             for (let i = indexesToRemove.length - 1; i >= 0; i--) {
-                ListFixV2.removeAt(tooltipList, tooltipField, indexesToRemove[i])
+                ListFix.removeAt(tooltipList, tooltipField, indexesToRemove[i])
             }
             return
         }
@@ -275,16 +296,16 @@ function removeByRegex(tooltipList, regexString, formatted, fromEvent) {
 
     if (isLegacy) {
         if (fromEvent) {
-            let size = ListFixV2.size(tooltipList, tooltipField)
+            let size = ListFix.size(tooltipList, tooltipField)
             let indexesToRemove = []
             for (let i = 0; i < size; i++) {
-                let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                let line = ListFix.getAt(tooltipList, tooltipField, i)
                 if (regex.test(processFormattedText(line, formatted))) {
                     indexesToRemove.push(i)
                 }
             }
             for (let i = indexesToRemove.length - 1; i >= 0; i--) {
-                ListFixV2.removeAt(tooltipList, tooltipField, indexesToRemove[i])
+                ListFix.removeAt(tooltipList, tooltipField, indexesToRemove[i])
             }
             return
         }
@@ -309,9 +330,9 @@ function removeAndInsertRegex(tooltipList, regexString, lineIndex, newContentLis
 
     if (isLegacy) {
         if (fromEvent) {
-            let size = ListFixV2.size(tooltipList, tooltipField)
+            let size = ListFix.size(tooltipList, tooltipField)
             for (let i = 0; i < size; i++) {
-                let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                let line = ListFix.getAt(tooltipList, tooltipField, i)
                 if (regex.test(processFormattedText(line, formatted))) {
                     foundMatch = true
                     break
@@ -347,7 +368,7 @@ function replaceByLineIndex(tooltipList, lineIndex, newContentList, fromEvent) {
         let newIndex = lineIndex + indexOffset
         if (isLegacy) {
             if (fromEvent) {
-                ListFixV2.set(tooltipList, tooltipField, newIndex, newContent)
+                ListFix.set(tooltipList, tooltipField, newIndex, newContent)
                 return
             }
 
@@ -366,16 +387,16 @@ function replaceByContent(tooltipList, contentToReplace, newContentList, formatt
     newContentList.forEach(newContent => {
         if (isLegacy) {
             if (fromEvent) {
-                let size = ListFixV2.size(tooltipList, tooltipField)
+                let size = ListFix.size(tooltipList, tooltipField)
                 let indexesToReplace = []
                 for (let i = 0; i < size; i++) {
-                    let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                    let line = ListFix.getAt(tooltipList, tooltipField, i)
                     if (processFormattedText(line, formatted) == contentToReplace) {
                         indexesToReplace.push(i)
                     }
                 }
                 for (let i = 0; i < indexesToReplace.length; i++) {
-                    ListFixV2.set(tooltipList, tooltipField, indexesToReplace[i], newContent)
+                    ListFix.set(tooltipList, tooltipField, indexesToReplace[i], newContent)
                 }
                 return
             }
@@ -400,16 +421,16 @@ function replaceByRegex(tooltipList, regexString, newContentList, formatted, fro
     newContentList.forEach(newContent => {
         if (isLegacy) {
             if (fromEvent) {
-                let size = ListFixV2.size(tooltipList, tooltipField)
+                let size = ListFix.size(tooltipList, tooltipField)
                 let indexesToReplace = []
                 for (let i = 0; i < size; i++) {
-                    let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                    let line = ListFix.getAt(tooltipList, tooltipField, i)
                     if (regex.test(processFormattedText(line, formatted))) {
                         indexesToReplace.push(i)
                     }
                 }
                 for (let i = 0; i < indexesToReplace.length; i++) {
-                    ListFixV2.set(tooltipList, tooltipField, indexesToReplace[i], newContent)
+                    ListFix.set(tooltipList, tooltipField, indexesToReplace[i], newContent)
                 }
                 return
             }
@@ -442,12 +463,12 @@ function replaceWord(tooltipList, contentToReplace, newContentList, fromEvent) {
     newContentList.forEach(newContent => {
         if (isLegacy) {
             if (fromEvent) {
-                let size = ListFixV2.size(tooltipList, tooltipField)
+                let size = ListFix.size(tooltipList, tooltipField)
                 for (let i = 0; i < size; i++) {
-                    let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                    let line = ListFix.getAt(tooltipList, tooltipField, i)
                     let text = processFormattedText(line, true)
                     if (regex.test(text)) {
-                        ListFixV2.set(tooltipList, tooltipField, i, text.replace(regex, newContent))
+                        ListFix.set(tooltipList, tooltipField, i, text.replace(regex, newContent))
                     }
                 }
                 return
@@ -477,9 +498,9 @@ function replaceOrInsertRegex(tooltipList, regexString, lineIndex, newContentLis
 
     if (isLegacy) {
         if (fromEvent) {
-            let size = ListFixV2.size(tooltipList, tooltipField)
+            let size = ListFix.size(tooltipList, tooltipField)
             for (let i = 0; i < size; i++) {
-                let line = ListFixV2.getAt(tooltipList, tooltipField, i)
+                let line = ListFix.getAt(tooltipList, tooltipField, i)
                 if (regex.test(processFormattedText(line, formatted))) {
                     foundMatch = true
                     break
@@ -509,6 +530,27 @@ function replaceOrInsertRegex(tooltipList, regexString, lineIndex, newContentLis
         return
     }
     insertByLineIndex(tooltipList, lineIndex, newContentList, fromEvent)
+}
+
+function setLore(tooltipList, newContentList, fromEvent, originalLore, addedLines) {
+    let size = tooltipList.size()
+    let toRemove = []
+
+    for (let i = 1; i < size; i++) {
+        let line = tooltipList.get(i)
+        if (!addedLines.has(line)) {
+            toRemove.push(i)
+        }
+    }
+
+    for (let i = toRemove.length - 1; i >= 0; i--) {
+        tooltipList.remove(toRemove[i])
+    }
+
+    let insertAt = 1
+    newContentList.forEach((newContent, offset) => {
+        tooltipList.add(insertAt + offset, newContent)
+    })
 }
 
 function getSkyblockItemUUID(itemStack) {
@@ -563,7 +605,7 @@ function loadLoreActions(itemStack) {
     const loreActions = itemNBT.getCompound("loreActions").orElse(null)
     if (!loreActions) return actions
 
-    const keyList = loreActions.getKeys().toArray()
+    const keyList = loreActions.keySet().toArray()
     for (const key of keyList) {
         const nbtElement = loreActions.getCompound(key)?.orElse(null)
         if (!nbtElement) continue
@@ -722,8 +764,23 @@ function init() {
 
             return (actionPriority[a.action] || 99) - (actionPriority[b.action] || 99)
         })
+
+        let addedLines = new Set()
+        let originalLore = Lore.getLore(itemStack)
         actionArray.forEach(actionData => {
-            applyLoreChanges(tooltipList, actionData, true)
+            if (actionData.action == "setLore") {
+                applyLoreChanges(tooltipList, actionData, true, originalLore, addedLines)
+                return
+            }
+
+            let before = new Set(tooltipList.toArray())
+            applyLoreChanges(tooltipList, actionData, true, originalLore, addedLines)
+
+            for (let line of tooltipList.toArray()) {
+                if (!before.has(line)) {
+                    addedLines.add(line)
+                }
+            }
         })
     }
 
@@ -789,7 +846,7 @@ export default Lore = {
         }
 
         try {
-            const currentLore = item.getProcessedLore()
+            const currentLore = Lore.getLore(item)
             const insertIndex = currentLore.length + 1 - (safeMode ? 0 : 1)
             return this.insert(item, moduleName, insertIndex, newContent, safeMode, priority)
         } catch (e) {
@@ -883,6 +940,15 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: newContent,
             contentToReplace: regexString,
+            priority: priority,
+        }, safeMode)
+    },
+    setLore: function(item, moduleName, newContentList, safeMode = true, priority = 0) {
+        return applyNonEventLoreChanges(item, moduleName, {
+            action: "setLore",
+            lineIndex: -1,
+            newContent: newContentList,
+            contentToReplace: "",
             priority: priority,
         }, safeMode)
     },

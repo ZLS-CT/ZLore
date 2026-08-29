@@ -1,9 +1,9 @@
 // Took base code from @DocilElm, added get, insert, and size methods to CT and .jar
 
-const ListFixInstance = Java.type("com.zephy.listfix2.ListFix2").INSTANCE
+const ListFixInstance = Java.type("com.zephy.zjs.listfix.ListFix").INSTANCE
 const cache = new Map()
 
-export default class ListFixV2 {
+export default class ListFix {
     /**
      * - Internal use.
      * - "Reflects" the given field or method and save it in cache
