@@ -13,12 +13,12 @@ export default class ListFix {
      * @returns {number} `1` is `method`. `2` is `field`
      */
     static _reflect(event, name) {
-        if (event.class.getDeclaredMethods().some(it => it.getName() === name)) {
+        if (event.class.getDeclaredMethods().some(it => it.getName() == name)) {
             cache.set(name, 1)
             return 1
         }
 
-        if (!event.class.getDeclaredFields().some(it => it.getName() === name)) {
+        if (!event.class.getDeclaredFields().some(it => it.getName() == name)) {
             throw `${name} is not a valid field or method`
         }
 
@@ -36,7 +36,7 @@ export default class ListFix {
     static _checkCache(name, methodName) {
         if (!cache.has(name)) return
 
-        return cache.get(name) === 1 ? `${methodName}M` : `${methodName}F`
+        return cache.get(name) == 1 ? `${methodName}M` : `${methodName}F`
     }
 
     /**
@@ -51,7 +51,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name, str)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.addM(event, name, str)
+        if (res == 1) return ListFixInstance.addM(event, name, str)
 
         ListFixInstance.addF(event, name, str)
     }
@@ -69,7 +69,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name, idx, str)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.setM(event, name, idx, str)
+        if (res == 1) return ListFixInstance.setM(event, name, idx, str)
 
         ListFixInstance.setF(event, name, idx, str)
     }
@@ -85,7 +85,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.clearM(event, name)
+        if (res == 1) return ListFixInstance.clearM(event, name)
 
         ListFixInstance.clearF(event, name)
     }
@@ -102,7 +102,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name, idx)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.removeM(event, name, idx)
+        if (res == 1) return ListFixInstance.removeM(event, name, idx)
 
         ListFixInstance.removeF(event, name, idx)
     }
@@ -119,7 +119,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name, idx)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.getM(event, name, idx)
+        if (res == 1) return ListFixInstance.getM(event, name, idx)
 
         return ListFixInstance.getF(event, name, idx)
     }
@@ -137,7 +137,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name, idx, str)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.insertM(event, name, idx, str)
+        if (res == 1) return ListFixInstance.insertM(event, name, idx, str)
 
         ListFixInstance.insertF(event, name, idx, str)
     }
@@ -153,7 +153,7 @@ export default class ListFix {
         if (methodCached) return ListFixInstance[methodCached](event, name)
 
         const res = this._reflect(event, name)
-        if (res === 1) return ListFixInstance.sizeM(event, name)
+        if (res == 1) return ListFixInstance.sizeM(event, name)
 
         return ListFixInstance.sizeF(event, name)
     }
