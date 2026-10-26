@@ -822,7 +822,7 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: newContent,
             contentToReplace: "",
-            priority: priority,
+            priority,
         }, safeMode)
     },
 
@@ -836,7 +836,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: newContent,
             contentToReplace: "",
-            priority: priority,
+            priority,
         }, safeMode)
     },
     appendAfterUnmodified: function(item, moduleName, newContent, safeMode = true, priority = 0) {
@@ -864,7 +864,7 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: "",
             contentToReplace: "",
-            priority: priority,
+            priority,
         }, safeMode)
     },
     removeLineContent: function(item, moduleName, contentToRemove, formatted, safeMode = true, priority = 0) {
@@ -873,7 +873,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: "",
             contentToReplace: contentToRemove,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     removeLineContentRegex: function(item, moduleName, regexString, formatted, safeMode = true, priority = 0) {
@@ -882,7 +882,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: "",
             contentToReplace: regexString,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     removeAndInsertRegex: function(item, moduleName, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
@@ -891,7 +891,7 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: newContent,
             contentToReplace: regexString,
-            priority: priority,
+            priority,
         }, safeMode)
     },
 
@@ -904,7 +904,7 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: newContent,
             contentToReplace: "",
-            priority: priority,
+            priority,
         }, safeMode)
     },
     replaceLineContent: function(item, moduleName, contentToReplace, newContent, formatted, safeMode = true, priority = 0) {
@@ -913,7 +913,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: newContent,
             contentToReplace: contentToReplace,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     replaceLineContentRegex: function(item, moduleName, regexString, newContent, formatted, safeMode = true, priority = 0) {
@@ -922,7 +922,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: newContent,
             contentToReplace: regexString,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     replaceWord: function(item, moduleName, contentToReplace, newContent, safeMode = true, priority = 0) {
@@ -931,7 +931,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: newContent,
             contentToReplace: contentToReplace,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     replaceOrInsertRegex: function(item, moduleName, regexString, lineIndex, newContent, formatted, safeMode = true, priority = 0) {
@@ -940,7 +940,7 @@ export default Lore = {
             lineIndex: lineIndex,
             newContent: newContent,
             contentToReplace: regexString,
-            priority: priority,
+            priority,
         }, safeMode)
     },
     setLore: function(item, moduleName, newContentList, safeMode = true, priority = 0) {
@@ -949,7 +949,7 @@ export default Lore = {
             lineIndex: -1,
             newContent: newContentList,
             contentToReplace: "",
-            priority: priority,
+            priority,
         }, safeMode)
     },
 
@@ -984,5 +984,5 @@ export default Lore = {
         if (registeredLoreChanges[skyblockUUID]) {
             delete registeredLoreChanges[skyblockUUID][moduleName]
         }
-    }
+    },
 }
