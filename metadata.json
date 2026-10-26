@@ -6,6 +6,5 @@
         "ZCore",
         "ZRenderLib"
     ],
-    "version": "1.2.0",
-    "mixinEntry": "mixins.js"
+    "version": "1.2.1"
 }

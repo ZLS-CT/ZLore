@@ -1,74 +1,54 @@
-import { GetJavaClass, isLegacy, getItemStackLore, getCustomDataNBT, getItemStack } from "../ZCore"
+import {
+    GetJavaClass,
+    isLegacy,
+    getItemStackLore,
+    getCustomDataNBT,
+    getItemStack,
+    getSkyblockItemUUID,
+    isOnHypixel,
+    isLoaded,
+    regexCache,
+    parseRegexString,
+    ChatDebug,
+    ChatLog,
+} from "../ZCore"
 import { splitText } from "../ZRenderLib/index"
-import * as Mixins from './mixins'
 import ListFix from "./listfix"
+import { jvmObject, registerShared, clearObject } from "../ZCore/core"
 
 const NBTTagString = GetJavaClass("net.minecraft.nbt.NBTTagString")
 
 const tooltipField = "toolTip"
-const HYPIXEL_REGEX = /^(?:[\w-]+\.)?(hypixel\.net)$/
 
-let registeredLoreChanges = {}
-let skyblockUUIDCache = {}
-let regexCache = {}
-let onHypixel = false
-let isLoaded = false
+const registeredLoreChanges = jvmObject("zlore.changes")
 let isDebug = false
 
-init()
-register("worldUnload", () => { unload() })
-register("gameUnload", () => {
-    isLoaded = false
-    unload()
-})
+registerShared("zlore.worldUnload", "worldUnload", () => { unload() })
+registerShared("zlore.gameUnload", "gameUnload", () => { unload() })
 
-// Catches ct reload
-register("gameLoad", () => {
-    isLoaded = true
-    updateOnHypixel()
-})
+if (isLegacy) {
+    registerShared("zlore.tooltip", net.minecraftforge.event.entity.player.ItemTooltipEvent, (event) => {
+        try {
+            let itemStack = GetItemStackFromHoverEvent(event)
+            if (itemStack == null) return
 
-// Catches normal server joining
-register("serverDisconnect", () => { updateOnHypixel() })
-register("serverConnect", () => {
-    const maxAttempts = 10
-    let attempts = 0
-    new Thread(() => {
-        while (attempts < maxAttempts) {
-            if (Server.getIP() != "") {
-                updateOnHypixel()
-                return
-            }
-            Thread.sleep(25)
-            attempts++
+            applyLoreActions(itemStack, event)
+        } catch (e) {
+            if (isDebug) ChatDebug(`[GetTooltipForge] Error: ${JSON.stringify(e)}`)
         }
-    }).start()
-})
-
-function updateOnHypixel() {
-    onHypixel = HYPIXEL_REGEX.test(Server.getIP())
+    }).setPriority(Priority.HIGHEST)
+} else {
+    registerShared("zlore.tooltip", "ZCore:RenderItemTooltip", (itemStack, tooltipList) => {
+        try {
+            applyLoreActions(itemStack, tooltipList)
+        } catch (e) {
+            if (isDebug) ChatDebug(`[RenderItemTooltip] Error: ${JSON.stringify(e)}`)
+        }
+    })
 }
 
 function unload() {
-    updateOnHypixel()
-    registeredLoreChanges = {}
-    skyblockUUIDCache = {}
-    regexCache = {}
-}
-
-function parseRegexString(input) {
-    if (regexCache.hasOwnProperty(input)) {
-        return regexCache[input]
-    }
-
-    const regexParts = input.match(/^\/(.*)\/([a-z]*)$/i)
-    if (!regexParts) throw new Error("Invalid regex format. Use /pattern/flags")
-
-    const [, pattern, flags] = regexParts
-    const regex = new RegExp(pattern, flags)
-    regexCache[input] = regex
-
-    return regex
+    clearObject(registeredLoreChanges)
 }
 
 function GetTextComponentList(content) {
@@ -453,11 +433,11 @@ function replaceByRegex(tooltipList, regexString, newContentList, formatted, fro
 function replaceWord(tooltipList, contentToReplace, newContentList, fromEvent) {
     let regexString = contentToReplace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     let regex = null
-    if (regexCache.hasOwnProperty(regexString)) {
-        regex = regexCache[regexString]
+    if (regexCache.has(regexString)) {
+        regex = regexCache.get(regexString)
     } else {
         regex = new RegExp(regexString, "gi")
-        regexCache[regexString] = regex
+        regexCache.put(regexString, regex)
     }
 
     newContentList.forEach(newContent => {
@@ -467,8 +447,9 @@ function replaceWord(tooltipList, contentToReplace, newContentList, fromEvent) {
                 for (let i = 0; i < size; i++) {
                     let line = ListFix.getAt(tooltipList, tooltipField, i)
                     let text = processFormattedText(line, true)
-                    if (regex.test(text)) {
-                        ListFix.set(tooltipList, tooltipField, i, text.replace(regex, newContent))
+                    let replaced = text.replace(regex, () => newContent)
+                    if (replaced != text) {
+                        ListFix.set(tooltipList, tooltipField, i, replaced)
                     }
                 }
                 return
@@ -478,16 +459,19 @@ function replaceWord(tooltipList, contentToReplace, newContentList, fromEvent) {
             for (let i = 0; i < size; i++) {
                 let line = tooltipList.func_150307_f(i)
                 let text = processFormattedText(line, true)
-                if (regex.test(text)) {
-                    tooltipList.func_150304_a(i, new NBTTagString(text.replace(regex, newContent)))
+                let replaced = text.replace(regex, () => newContent)
+                if (replaced != text) {
+                    tooltipList.func_150304_a(i, new NBTTagString(replaced))
                 }
             }
             return
         }
 
+        const replacement = new TextComponent(newContent).formattedText.toString()
         tooltipList.replaceAll(line => {
             const text = new TextComponent(line).formattedText.toString()
-            return regex.test(text) ? newContent : line
+            const replaced = text.replace(regex, () => replacement)
+            return replaced == text ? line : new TextComponent(replaced)
         })
     })
 }
@@ -553,28 +537,6 @@ function setLore(tooltipList, newContentList, fromEvent, originalLore, addedLine
     })
 }
 
-function getSkyblockItemUUID(itemStack) {
-    let hashCode = `${System.identityHashCode(itemStack)}`
-    if (skyblockUUIDCache.hasOwnProperty(hashCode)) {
-        return skyblockUUIDCache[hashCode]
-    }
-
-    let itemNBT = getCustomDataNBT(itemStack)
-    let uuid = null
-
-    if (isLegacy) {
-        const extraAttributes = itemNBT.func_74775_l("ExtraAttributes")
-        uuid = extraAttributes ? extraAttributes.func_74779_i("uuid") : null
-    } else {
-        uuid = itemNBT.getString("uuid").orElse(null)
-    }
-
-    if (uuid != null) {
-        skyblockUUIDCache[hashCode] = uuid
-    }
-    return uuid
-}
-
 function loadLoreActions(itemStack) {
     const itemNBT = getCustomDataNBT(itemStack)
 
@@ -625,7 +587,7 @@ function loadLoreActions(itemStack) {
 function registerLoreAction(item, itemStack, moduleName, action, lineIndex, newContent, contentToReplace, priority) {
     const key = `${moduleName}:${action}:${lineIndex}:${newContent}:${contentToReplace}:${priority}`
 
-    if (onHypixel) {
+    if (isOnHypixel()) {
         let updatedLore = false
         ;(function() {
             const skyblockUUID = getSkyblockItemUUID(itemStack)
@@ -698,7 +660,7 @@ function withLoreList(itemStack, methodName, callback) {
         }
         return true
     } catch (e) {
-        if (isDebug) ChatLib.chat(`[${methodName}] Error: ${JSON.stringify(e)}`)
+        if (isDebug) ChatDebug(`[${methodName}] Error: ${JSON.stringify(e)}`)
         return false
     }
 }
@@ -718,101 +680,69 @@ const GetItemStackFromHoverEvent = (event) => {
     return item
 }
 
-function init() {
-    function applyLoreActions(itemStack, tooltipList) {
-        let actions = null
-        if (onHypixel) {
-            ;(function() {
-                const skyblockUUID = getSkyblockItemUUID(itemStack)
-                if (skyblockUUID == null) return
+function applyLoreActions(itemStack, tooltipList) {
+    let actions = null
+    if (isOnHypixel()) {
+        ;(function() {
+            const skyblockUUID = getSkyblockItemUUID(itemStack)
+            if (skyblockUUID == null) return
 
-                if (registeredLoreChanges.hasOwnProperty(skyblockUUID)) {
-                    actions = {}
-                    Object.values(registeredLoreChanges[skyblockUUID]).forEach(moduleActions => {
-                        Object.assign(actions, moduleActions)
-                    })
-                    return
-                }
-                actions = loadLoreActions(itemStack)
-                if (Object.keys(actions).length == 0) return
-
-                registeredLoreChanges[skyblockUUID] = actions
-            }())
-        }
-
-        if (actions == null) {
-            actions = loadLoreActions(itemStack)
-        }
-        if (Object.keys(actions).length == 0) return
-
-        const actionPriority = { remove: 0, replaceLine: 1, insert: 2 }
-        const actionArray = Array.from(Object.values(actions)).sort((a, b) => {
-            if (a.priority != b.priority) {
-                return a.priority - b.priority
-            }
-
-            if (a.moduleName != b.moduleName) {
-                return a.moduleName.localeCompare(b.moduleName)
-            }
-
-            if (a.lineIndex == -1) return 1
-            if (b.lineIndex == -1) return -1
-
-            if (b.lineIndex != a.lineIndex) {
-                return b.lineIndex - a.lineIndex
-            }
-
-            return (actionPriority[a.action] || 99) - (actionPriority[b.action] || 99)
-        })
-
-        let addedLines = new Set()
-        let originalLore = Lore.getLore(itemStack)
-        actionArray.forEach(actionData => {
-            if (actionData.action == "setLore") {
-                applyLoreChanges(tooltipList, actionData, true, originalLore, addedLines)
+            if (registeredLoreChanges.hasOwnProperty(skyblockUUID)) {
+                actions = {}
+                Object.values(registeredLoreChanges[skyblockUUID]).forEach(moduleActions => {
+                    Object.assign(actions, moduleActions)
+                })
                 return
             }
+            actions = loadLoreActions(itemStack)
+            if (Object.keys(actions).length == 0) return
 
-            let before = new Set(tooltipList.toArray())
+            registeredLoreChanges[skyblockUUID] = actions
+        }())
+    }
+
+    if (actions == null) {
+        actions = loadLoreActions(itemStack)
+    }
+    if (Object.keys(actions).length == 0) return
+
+    const actionPriority = { remove: 0, replaceLine: 1, insert: 2 }
+    const actionArray = Array.from(Object.values(actions)).sort((a, b) => {
+        if (a.priority != b.priority) {
+            return a.priority - b.priority
+        }
+
+        if (a.moduleName != b.moduleName) {
+            return a.moduleName.localeCompare(b.moduleName)
+        }
+
+        if (a.lineIndex == -1) return 1
+        if (b.lineIndex == -1) return -1
+
+        if (b.lineIndex != a.lineIndex) {
+            return b.lineIndex - a.lineIndex
+        }
+
+        return (actionPriority[a.action] || 99) - (actionPriority[b.action] || 99)
+    })
+
+    let addedLines = new Set()
+    let originalLore = Lore.getLore(itemStack)
+    actionArray.forEach(actionData => {
+        if (actionData.action == "setLore") {
             applyLoreChanges(tooltipList, actionData, true, originalLore, addedLines)
+            return
+        }
 
-            for (let line of tooltipList.toArray()) {
-                if (!before.has(line)) {
-                    addedLines.add(line)
-                }
+        let before = new Set(tooltipList.toArray())
+        applyLoreChanges(tooltipList, actionData, true, originalLore, addedLines)
+
+        for (let line of tooltipList.toArray()) {
+            if (!before.has(line)) {
+                addedLines.add(line)
             }
-        })
-    }
-
-    if (isLegacy) {
-        register(net.minecraftforge.event.entity.player.ItemTooltipEvent, (event) => {
-            try {
-                let itemStack = GetItemStackFromHoverEvent(event)
-                if (itemStack == null) return
-
-                applyLoreActions(itemStack, event)
-            } catch (e) {
-                if (isDebug) ChatLib.chat(`[GetTooltipForge] Error: ${JSON.stringify(e)}`)
-            }
-        }).setPriority(Priority.HIGHEST)
-        return
-    }
-
-    try {
-        Mixins.itemStack_modifyTooltip.attach((itemStack, callbackInfo, tooltipList) => {
-            // Prevents mixin from running when modules are unloaded
-            if (!isLoaded) return
-
-            try {
-                applyLoreActions(itemStack, tooltipList)
-            } catch (e) {
-                if (isDebug) ChatLib.chat(`[GetTooltipMixin] Error: ${JSON.stringify(e)}`)
-            }
-        })
-    } catch (e) {
-        console.error("Failed to apply mixin, lore modifications will not work: ", e)
-        if (isDebug) ChatLib.chat(`[GetTooltipMixin] Error: ${JSON.stringify(e)}`)
-    }
+        }
+    })
 }
 
 export default Lore = {
@@ -850,7 +780,7 @@ export default Lore = {
             const insertIndex = currentLore.length + 1 - (safeMode ? 0 : 1)
             return this.insert(item, moduleName, insertIndex, newContent, safeMode, priority)
         } catch (e) {
-            if (isDebug) ChatLib.chat(`[AppendAfterUnmodified] Error: ${JSON.stringify(e)}`)
+            if (isDebug) ChatDebug(`[AppendAfterUnmodified] Error: ${JSON.stringify(e)}`)
             return false
         }
     },
@@ -964,7 +894,7 @@ export default Lore = {
         })
     },
     clearAllLoreChanges: function() {
-        registeredLoreChanges = {}
+        clearObject(registeredLoreChanges)
     },
     clearModuleLoreChanges: function(moduleName) {
         Object.keys(registeredLoreChanges).forEach(skyblockUUID => {
