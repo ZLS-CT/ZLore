@@ -36,7 +36,7 @@ if (isLegacy) {
         } catch (e) {
             if (isDebug) ChatDebug(`[GetTooltipForge] Error: ${JSON.stringify(e)}`)
         }
-    }).setPriority(Priority.HIGHEST)
+    }).setPriority(Priority.LOWEST)
 } else {
     registerShared("zlore.tooltip", "ZCore:RenderItemTooltip", (itemStack, tooltipList) => {
         try {
@@ -44,7 +44,7 @@ if (isLegacy) {
         } catch (e) {
             if (isDebug) ChatDebug(`[RenderItemTooltip] Error: ${JSON.stringify(e)}`)
         }
-    })
+    }).setPriority(Priority.LOWEST)
 }
 
 function unload() {
@@ -745,6 +745,45 @@ function applyLoreActions(itemStack, tooltipList) {
     })
 }
 
+function stripLoreActionsFromStack(itemStack, moduleName) {
+    if (itemStack == null) return
+    if (isLegacy) {
+        throw new Error("stripLoreActionsFromStack is not supported in legacy versions.")
+    }
+
+    const customData = itemStack.get(DataComponents.CUSTOM_DATA)
+    if (customData == null) return
+
+    const nbt = customData.copyTag()
+    if (!nbt.contains("loreActions")) return
+
+    if (moduleName == null) {
+        nbt.remove("loreActions")
+    } else {
+        const root = nbt.getCompound("loreActions").orElse(null)
+        if (root == null) return
+        for (const key of root.keySet().toArray()) {
+            const entry = root.getCompound(key).orElse(null)
+            if (entry != null && entry.getString("moduleName").orElse(null) == moduleName) {
+                root.remove(key)
+            }
+        }
+        if (root.isEmpty()) nbt.remove("loreActions")
+    }
+    itemStack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt))
+}
+
+function stripLoreActionsFromOpenContainer(moduleName) {
+    if (isLegacy) return
+    const player = Client.getMinecraft().player
+    if (player == null) return
+    player.containerMenu.slots.forEach(slot => {
+        const itemStack = slot.getItem()
+        if (itemStack == null || itemStack.isEmpty()) return
+        stripLoreActionsFromStack(itemStack, moduleName)
+    })
+}
+
 export default Lore = {
     insert: function(item, moduleName, lineIndex, newContent, safeMode = true, priority = 0) {
         return applyNonEventLoreChanges(item, moduleName, {
@@ -895,6 +934,7 @@ export default Lore = {
     },
     clearAllLoreChanges: function() {
         clearObject(registeredLoreChanges)
+        stripLoreActionsFromOpenContainer(null)
     },
     clearModuleLoreChanges: function(moduleName) {
         Object.keys(registeredLoreChanges).forEach(skyblockUUID => {
@@ -902,17 +942,22 @@ export default Lore = {
                 delete registeredLoreChanges[skyblockUUID][moduleName]
             }
         })
+        stripLoreActionsFromOpenContainer(moduleName)
     },
     clearAllItemLoreChanges: function(item) {
         const itemStack = getItemStack(item)
+        if (itemStack == null) return
         const skyblockUUID = getSkyblockItemUUID(itemStack)
-        registeredLoreChanges[skyblockUUID] = {}
+        if (skyblockUUID != null) delete registeredLoreChanges[skyblockUUID]
+        stripLoreActionsFromStack(itemStack, null)
     },
     clearModuleItemLoreChanges: function(moduleName, item) {
         const itemStack = getItemStack(item)
+        if (itemStack == null) return
         const skyblockUUID = getSkyblockItemUUID(itemStack)
-        if (registeredLoreChanges[skyblockUUID]) {
+        if (skyblockUUID != null && registeredLoreChanges[skyblockUUID]) {
             delete registeredLoreChanges[skyblockUUID][moduleName]
         }
+        stripLoreActionsFromStack(itemStack, moduleName)
     },
 }
